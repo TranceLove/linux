@@ -520,7 +520,6 @@ config CHT_WC_PMIC_OPREGION
 	depends on INTEL_SOC_PMIC_CHTWC
 	help
 	  This config adds ACPI operation region support for CHT Whiskey Cove PMIC.
-
 endif
 
 config ACPI_CONFIGFS
