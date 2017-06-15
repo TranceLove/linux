@@ -552,6 +552,8 @@ static void asus_remove(struct hid_device *hdev)
 		drvdata->kbd_backlight->removed = true;
 		cancel_work_sync(&drvdata->kbd_backlight->work);
 	}
+
+	hid_hw_stop(hdev);
 }
 
 static __u8 *asus_report_fixup(struct hid_device *hdev, __u8 *rdesc,
@@ -564,6 +566,12 @@ static __u8 *asus_report_fixup(struct hid_device *hdev, __u8 *rdesc,
 		hid_info(hdev, "Fixing up Asus notebook report descriptor\n");
 		rdesc[55] = 0xdd;
 	}
+	if (drvdata->quirks & QUIRK_T100_KEYBOARD &&
+		 *rsize == 76 && rdesc[73] == 0x81 && rdesc[74] == 0x01) {
+		hid_info(hdev, "Fixing up Asus T100 keyb report descriptor\n");
+		rdesc[74] &= ~HID_MAIN_ITEM_CONSTANT;
+	}
+
 	return rdesc;
 }
 
@@ -576,6 +584,9 @@ static const struct hid_device_id asus_devices[] = {
 		USB_DEVICE_ID_ASUSTEK_ROG_KEYBOARD1) },
 	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
 		USB_DEVICE_ID_ASUSTEK_ROG_KEYBOARD2), QUIRK_USE_KBD_BACKLIGHT },
+	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
+		USB_DEVICE_ID_ASUSTEK_T100_KEYBOARD),
+	  QUIRK_T100_KEYBOARD | QUIRK_NO_CONSUMER_USAGES },
 	{ }
 };
 MODULE_DEVICE_TABLE(hid, asus_devices);

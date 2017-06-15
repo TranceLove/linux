@@ -259,6 +259,42 @@ static int axp20x_pek_probe_input_device(struct axp20x_pek *axp20x_pek,
 	return 0;
 }
 
+#ifdef CONFIG_ACPI
+static bool axp20x_pek_should_register_input(struct axp20x_pek *axp20x_pek,
+					     struct platform_device *pdev)
+{
+	unsigned long long hrv = 0;
+	acpi_status status;
+
+	if (IS_ENABLED(CONFIG_INPUT_SOC_BUTTON_ARRAY) &&
+	    axp20x_pek->axp20x->variant == AXP288_ID) {
+		status = acpi_evaluate_integer(ACPI_HANDLE(pdev->dev.parent),
+					       "_HRV", NULL, &hrv);
+		if (ACPI_FAILURE(status))
+			dev_err(&pdev->dev, "Failed to get PMIC hardware revision\n");
+
+		/*
+		 * On Cherry Trail platforms (hrv == 3), do not register the
+		 * input device if there is an "INTCFD9" or "ACPI0011" gpio
+		 * button ACPI device, as that handles the power button too,
+		 * and otherwise we end up reporting all presses twice.
+		 */
+		if (hrv == 3 && (acpi_dev_present("INTCFD9", NULL, -1) ||
+				 acpi_dev_present("ACPI0011", NULL, -1)))
+			return false;
+
+	}
+
+	return true;
+}
+#else
+static bool axp20x_pek_should_register_input(struct axp20x_pek *axp20x_pek,
+					     struct platform_device *pdev)
+{
+	return true;
+}
+#endif
+
 static int axp20x_pek_probe(struct platform_device *pdev)
 {
 	struct axp20x_pek *axp20x_pek;

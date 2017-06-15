@@ -47,6 +47,7 @@
 
 #include <linux/pci.h>
 #include <linux/delay.h>
+#include <linux/bitmap.h>
 
 #include "hfi.h"
 #include "common.h"
@@ -129,7 +130,8 @@ void handle_linkup_change(struct hfi1_devdata *dd, u32 linkup)
 		 * the remote values.  Both sides must be using the values.
 		 */
 		if (quick_linkup || dd->icode == ICODE_FUNCTIONAL_SIMULATOR) {
-			set_up_vl15(dd, dd->vau, dd->vl15_init);
+			set_up_vau(dd, dd->vau);
+			set_up_vl15(dd, dd->vl15_init);
 			assign_remote_cm_au_table(dd, dd->vcu);
 		}
 
@@ -189,7 +191,7 @@ void handle_user_interrupt(struct hfi1_ctxtdata *rcd)
 	unsigned long flags;
 
 	spin_lock_irqsave(&dd->uctxt_lock, flags);
-	if (!rcd->cnt)
+	if (bitmap_empty(rcd->in_use_ctxts, HFI1_MAX_SHARED_CTXTS))
 		goto done;
 
 	if (test_and_clear_bit(HFI1_CTXT_WAITING_RCV, &rcd->event_flags)) {
